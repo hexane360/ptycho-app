@@ -1,0 +1,50 @@
+.sidebar {
+    width: 22em;
+    display: block;
+    position: absolute;
+
+    border-right: 2px solid;
+    box-sizing: border-box;
+}
+
+.main {
+    margin-left: calc(22em);
+}
+
+.section-header {
+    display: block;
+    font-size: x-large;
+    border-bottom: 2px solid;
+    padding: 10px;
+    margin: 10px 10px;
+}
+
+.section-header:hover {
+    background-color: #ccc;
+    border-radius: 5px;
+}
+
+.section {
+    transition: max-height 0.3s ease-out;
+    max-height: 100em;
+    overflow: hidden;
+    margin: 15px 15px;
+}
+
+.section-header + .section.collapsed {
+    transition: max-height 0.3s ease-in;
+    max-height: 0;
+}
+
+.section > * {
+    margin: auto;
+}
+
+.hbox, .vbox {
+    display: flex;
+    justify-content: center;
+}
+
+.hbox > *, .vbox > * {
+    flex: 0 0 auto;
+}

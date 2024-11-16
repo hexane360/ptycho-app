@@ -1,0 +1,26 @@
+body {
+  font-family: sans-serif;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+.config input {
+  width: 5em;
+}
+
+.config td {
+  padding-right: 0.5em;
+}
+
+.sidebar {
+  padding: 1em;
+}
+
+.main > div {
+  max-width: 60em;
+}

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+      "target": "ESNext",
+      "module": "ESNext",
+      "moduleResolution": "Bundler",
+      "lib": ["ESNext", "DOM"],
+      "jsx": "react",
+
+      "sourceMap": true,
+      "strict": true,
+      "esModuleInterop": true,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
+  }
+}
