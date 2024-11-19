@@ -58,7 +58,7 @@ function unit_cell_amp(
     return amp;
 }
 
-export function object_potential(
+export function object_phase(
     extent: readonly [number, number], n: readonly [number, number],
     electron: Electron
 ): NArray {

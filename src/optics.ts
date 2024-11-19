@@ -56,7 +56,7 @@ export interface Aberration {
 }
 
 export function make_focused_probe(ky: NArray, kx: NArray, wavelength: number,
-                                   aperture: number, aberrations: Array<Aberration> = []): NArray {
+                                   aperture: number, aberrations: ReadonlyArray<Aberration> = []): NArray {
     const lambda = np!.array(wavelength, 'float32');
 
     const theta2 = np!.expr`(${ky}**2 + ${kx}**2) * ${lambda}**2`;
@@ -74,7 +74,7 @@ export function make_focused_probe(ky: NArray, kx: NArray, wavelength: number,
     let probe = np!.expr`exp(-2.j*pi * (${chi}/${wavelength}))`.astype('complex64');
     probe = np!.expr`${probe} * ${mask}`;
     let probe_int = np!.sqrt(np!.sum(np!.abs(probe)));
-    return np!.fft2shift(np!.ifft2(np!.expr`${probe} / ${probe_int}`, 'ortho'));
+    return np!.expr`${probe} / ${probe_int}`;
 }
 
 export function fresnel_propagator(ky: NArray, kx: NArray, wavelength: number,
