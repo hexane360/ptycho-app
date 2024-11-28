@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { atom, Atom, PrimitiveAtom, useAtom, useAtomValue } from 'jotai';
+import { atom, Atom, PrimitiveAtom, useAtom, useAtomValue, SetStateAction } from 'jotai';
 
 import { NArray } from 'wasm-array';
 import { np, np_fut } from "./wasm-array";
@@ -11,7 +11,7 @@ import { Transform1D, Transform2D } from './plotting/transform';
 import { Colorbar } from './plotting/colorbar';
 import { make_focused_probe, make_recip_grid, Aberration, Electron } from './optics';
 import { object_phase } from './atoms';
-import { HCenter, HBox, SidebarContainer } from './components';
+import { HCenter, VBox, HBox, SidebarContainer } from './components';
 import Config from './config';
 
 import './index.css';
@@ -45,9 +45,9 @@ export class Simulation {
         this.maxAngle = atom(50);
         this.n = atom([256, 256] as Pair);
 
-        this.aperture = atom(15.);
+        this.aperture = atom(30.);
         this.aberrations = atom([
-            { name: "Defocus", n: 1, m: 0, real: 1000, imag: 0.},
+            { name: "Defocus", n: 1, m: 0, real: 200, imag: 0.},
             { name: "Astigmatism", n: 1, m: 2, real: 0, imag: 0.},
             { name: "Coma", n: 2, m: 1, real: 0, imag: 0.},
             { name: "Spherical", n: 3, m: 0, real: 0, imag: 0.},
@@ -89,7 +89,9 @@ export class Simulation {
             let probe = await get(this.probe);
             const object = await get(this.object);
             const [ky, kx] = make_recip_grid(get(this.extent), get(this.n));
-            const [x, y] = get(this.probePos);
+            let [x, y] = get(this.probePos);
+            // nm -> angstrom
+            x *= 10; y *= 10;
 
             probe = np.ifft2(np.expr`${probe} * exp(-2j*pi * (${kx}*${x} + ${ky}*${y}))`.astype('complex64'));
             return np.fft2(np.expr`${probe}*exp(1.j*${object})`);
@@ -131,11 +133,14 @@ function Probe(props: {sim: Simulation}) {
     const maxAngle = useAtomValue(props.sim.maxAngle);
     const extent = useAtomValue(props.sim.extent);
 
+    const ky_label = React.useMemo(() => <>θ<tspan dy="0.6ex">y</tspan><tspan dy="-0.6ex"> [mrad]</tspan></>, []);
+    const kx_label = React.useMemo(() => <>θ<tspan dy="0.6ex">y</tspan><tspan dy="-0.6ex"> [mrad]</tspan></>, []);
+
     const axes: Map<string, AxisSpec> = new Map([
         ["y", {scale: new PlotScale([-extent[0]/20., extent[0]/20.], [0, 200]), label: "Y [nm]"}],
         ["x", {scale: new PlotScale([-extent[1]/20., extent[1]/20.], [0, 200]), label: "X [nm]"}],
-        ["ky", {scale: new PlotScale([-maxAngle, maxAngle], [0, 200]), label: <>θ<tspan dy="0.6ex">y</tspan><tspan dy="-0.6ex"> [mrad]</tspan></>}],
-        ["kx", {scale: new PlotScale([-maxAngle, maxAngle], [0, 200]), label: <>θ<tspan dy="0.6ex">x</tspan><tspan dy="-0.6ex"> [mrad]</tspan></>}],
+        ["ky", {scale: new PlotScale([-maxAngle, maxAngle], [0, 200]), label: ky_label}],
+        ["kx", {scale: new PlotScale([-maxAngle, maxAngle], [0, 200]), label: kx_label}],
     ]);
 
     const scales: Map<string, ColorScale> = new Map([
@@ -159,7 +164,7 @@ function Probe(props: {sim: Simulation}) {
     </Figure>
 }
 
-function Object(props: {sim: Simulation}) {
+const Object = React.memo(function Object(props: {sim: Simulation}) {
     const extent = useAtomValue(props.sim.extent);
 
     const axes: Map<string, AxisSpec> = new Map([
@@ -172,39 +177,52 @@ function Object(props: {sim: Simulation}) {
     ]);
 
     const object = useAtomValue(props.sim.object);
+    const deferredObject = React.useDeferredValue(object);
 
     return <Figure axes={axes} scales={scales}>
         <HBox>
             <Plot xaxis="x" yaxis="y">
-            <PlotImage scale="phase" data={np!.fft2shift(object)} />
+            <PlotImage scale="phase" data={np!.fft2shift(deferredObject)} />
             <Crosshairs pos={props.sim.probePos} />
             </Plot>
             <Colorbar scale="phase"/>
         </HBox>
     </Figure>
-}
+});
 
 function Detector(props: {sim: Simulation}) {
     const maxAngle = useAtomValue(props.sim.maxAngle);
 
+    const ky_label = React.useMemo(() => <>θ<tspan dy="0.6ex">y</tspan><tspan dy="-0.6ex"> [mrad]</tspan></>, []);
+    const kx_label = React.useMemo(() => <>θ<tspan dy="0.6ex">y</tspan><tspan dy="-0.6ex"> [mrad]</tspan></>, []);
+
     const axes: Map<string, AxisSpec> = new Map([
-        ["ky", {scale: new PlotScale([-maxAngle, maxAngle], [0, 400]), label: <>θ<tspan dy="0.6ex">y</tspan><tspan dy="-0.6ex"> [mrad]</tspan></>}],
-        ["kx", {scale: new PlotScale([-maxAngle, maxAngle], [0, 400]), label: <>θ<tspan dy="0.6ex">x</tspan><tspan dy="-0.6ex"> [mrad]</tspan></>}],
+        ["ky", {scale: new PlotScale([-maxAngle, maxAngle], [0, 400]), label: ky_label}],
+        ["kx", {scale: new PlotScale([-maxAngle, maxAngle], [0, 400]), label: kx_label}],
     ]);
 
+    const [logScale, setLogScale] = React.useState(false);
+
     const scales: Map<string, ColorScale> = new Map([
-        ["recip_int", {range: [0, null]}],
+        ["recip_int", {range: logScale ? [null, null] : [0, null]}],
     ]);
 
     let pattern = useAtomValue(props.sim.pattern);
     pattern = np!.abs2(np!.fft2shift(pattern));
+    if (logScale) {
+        pattern = np!.log10_(pattern);
+    }
+    console.log(`min: ${np!.nanmin(pattern)} max: ${np!.nanmax(pattern)}`);
 
     return <Figure axes={axes} scales={scales}>
-        <HBox>
+        <VBox>
+            <div>
+                Log scale: <input type="checkbox" onInput={(e) => setLogScale(e.currentTarget.checked)}/>
+            </div>
             <Plot xaxis="kx" yaxis="ky">
                 <PlotImage scale="recip_int" data={pattern}/>
             </Plot>
-        </HBox>
+        </VBox>
     </Figure>
 }
 

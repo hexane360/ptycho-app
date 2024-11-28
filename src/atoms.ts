@@ -52,8 +52,13 @@ function unit_cell_amp(
         for (let [x, y] of pts) {
             const shift = np!.expr`exp(-2.j*pi*(${ky}*${y*b} + ${kx}*${x*a}))`.astype('complex64');
 
-            amp = np!.expr`${amp} + ${atom_amp}*${shift}*${frac}`;
+            const new_amp = np!.expr`${amp} + ${atom_amp}*${shift}*${frac}`;
+            amp.free();
+            amp = new_amp;
+
+            shift.free();
         }
+        atom_amp.free();
     }
     return amp;
 }
@@ -85,10 +90,20 @@ export function object_phase(
         for (let j = 0; j < n_b; j++) {
             const [x, y] = [i * a + global_shift[0], j * b + global_shift[1]];
             const shift = np!.expr`exp(-2.j*pi*(${ky}*${y} + ${kx}*${x}))`.astype('complex64');
-            amp = np!.expr`${amp} + ${unit_amp}*${shift}`;
+
+            const new_amp = np!.expr`${amp} + ${unit_amp}*${shift}`;
+            amp.free();
+            amp = new_amp;
+
+            shift.free();
         }
     }
 
+    const new_amp = np!.ifft2(amp);
+    amp.free();
+
     const scale = n[0]*n[1] / (extent[0]*extent[1]) * electron.gamma * electron.wavelength;
-    return np!.expr`abs(${np!.ifft2(amp)})*${scale}`; // phase in radians
+    const out = np!.expr`abs(${new_amp})*${scale}`; // phase in radians
+    new_amp.free();
+    return out;
 }

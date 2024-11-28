@@ -41,6 +41,8 @@ function normalize_axis(axis: AxisSpec | PlotScale): Axis {
         axis = {
             scale: axis
         };
+    } else {
+        axis = { ...axis };
     }
 
     axis.show = ("show" in axis) ? axis.show : true;
@@ -88,7 +90,7 @@ function mapEqual<K, V>(map1: Map<K, V>, map2: Map<K, V>, f: (val1: V, val2: V) 
 
     for (const [k, v1] of map1.entries()) {
         const v2 = map2.get(k);
-        if (!v2 || !f(v1, v2)) return false;
+        if (v2 === undefined || !f(v1, v2)) return false;
     }
     return true;
 }
@@ -113,8 +115,24 @@ function axisSpecEqual(old_spec: AxisSpec | PlotScale, new_spec: AxisSpec | Plot
     );
 }
 
+function scalesEqual(old_scale: ColorScale, new_scale: ColorScale): boolean {
+    if (typeof old_scale.range !== typeof new_scale.range) return false;
+    if (old_scale.range) {
+        if (typeof old_scale.range[0] !== typeof new_scale.range![0] || typeof old_scale.range[1] !== typeof new_scale.range![1]) return false;
+        if (old_scale.range[0] === undefined && !isClose(old_scale.range[0], new_scale.range![0]!)) return false;
+        if (old_scale.range[1] === undefined && !isClose(old_scale.range[1], new_scale.range![1]!)) return false;
+    }
+    return (
+        old_scale.cmap === new_scale.cmap &&
+        old_scale.label === new_scale.label &&
+        typeof old_scale.range === typeof new_scale.range
+    );
+}
+
 function figPropsEqual(old_props: FigureProps, new_props: FigureProps): boolean {
     if (!mapEqual(old_props.axes, new_props.axes, axisSpecEqual)) return false;
+    if (typeof old_props.scales !== typeof new_props.scales) return false;
+    if (old_props.scales && !mapEqual(old_props.scales, new_props.scales!, scalesEqual)) return false;
 
     if (typeof old_props.zoomExtent !== typeof new_props.zoomExtent) return false;
     if (old_props.zoomExtent && !isClose(old_props.zoomExtent, new_props.zoomExtent!)) return false;
@@ -605,11 +623,11 @@ export function PlotImage(props: PlotImageProps) {
             scale_range[1] ?? np.nanmax(data).toNestedArray() as number
         ];
 
-        // if currentRange isn't set, initialize it
-        if (currentRange[0] == null || currentRange[1] == null) {
-            setCurrentRange(range)
-        } else {
-            range = currentRange as [number, number];
+        // TODO: currently this just sets currentRange unconditionally
+        // need to make this smarter
+        if (currentRange[0] == null || currentRange[1] == null || !isClose(currentRange as Pair, range)) {
+            console.log(`setCurrentRange([${range[0]}, ${range[1]}]`);
+            setCurrentRange(range);
         }
 
         const ctx = canvas.getContext('2d')!;

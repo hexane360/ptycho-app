@@ -1,7 +1,7 @@
 .sidebar {
     width: 22em;
     display: block;
-    position: absolute;
+    position: fixed;
 
     border-right: 2px solid;
     box-sizing: border-box;
