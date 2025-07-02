@@ -141,17 +141,17 @@ const Probe = React.memo(function Probe(props: {sim: Simulation}) {
     const ky_label = React.useMemo(() => <>θ<tspan dy="0.6ex">y</tspan><tspan dy="-0.6ex"> [mrad]</tspan></>, []);
     const kx_label = React.useMemo(() => <>θ<tspan dy="0.6ex">y</tspan><tspan dy="-0.6ex"> [mrad]</tspan></>, []);
 
-    const axes: Map<string, AxisSpec> = new Map([
+    const axes: Map<string, AxisSpec> = React.useMemo(() => new Map([
         ["y", {scale: new PlotScale([-extent[0]/20., extent[0]/20.], [0, 200]), label: "Y [nm]"}],
         ["x", {scale: new PlotScale([-extent[1]/20., extent[1]/20.], [0, 200]), label: "X [nm]"}],
         ["ky", {scale: new PlotScale([-maxAngle, maxAngle], [0, 200]), label: ky_label}],
         ["kx", {scale: new PlotScale([-maxAngle, maxAngle], [0, 200]), label: kx_label}],
-    ]);
+    ]), [extent, maxAngle]);
 
-    const scales: Map<string, ColorScale> = new Map([
+    const scales: Map<string, ColorScale> = React.useMemo(() => new Map([
         ["real_int", {range: [0, null]}],
         ["recip_int", {range: [0, null]}],
-    ]);
+    ]), []);
 
     const probe = atomValueDeferred(props.sim.probe);
     const recip_int = np!.abs2(np!.fft2shift(probe));
@@ -172,14 +172,14 @@ const Probe = React.memo(function Probe(props: {sim: Simulation}) {
 const Object = React.memo(function Object(props: {sim: Simulation}) {
     const extent = useAtomValue(props.sim.extent, {delay: 0});
 
-    const axes: Map<string, AxisSpec> = new Map([
+    const axes: Map<string, AxisSpec> = React.useMemo(() => new Map([
         ["y", {scale: new PlotScale([-extent[0]/20., extent[0]/20.], [0, 200]), label: "Y [nm]"}],
         ["x", {scale: new PlotScale([-extent[1]/20., extent[1]/20.], [0, 200]), label: "X [nm]"}],
-    ]);
+    ]), [extent]);
 
-    const scales: Map<string, ColorScale> = new Map([
+    const scales: Map<string, ColorScale> = React.useMemo(() => new Map([
         ["phase", {range: [0, null], label: "Object phase [rad]"}],
-    ]);
+    ]), []);
 
     const object = atomValueDeferred(props.sim.object);
 
@@ -200,16 +200,16 @@ const Detector = React.memo(function Detector(props: {sim: Simulation}) {
     const ky_label = React.useMemo(() => <>θ<tspan dy="0.6ex">y</tspan><tspan dy="-0.6ex"> [mrad]</tspan></>, []);
     const kx_label = React.useMemo(() => <>θ<tspan dy="0.6ex">y</tspan><tspan dy="-0.6ex"> [mrad]</tspan></>, []);
 
-    const axes: Map<string, AxisSpec> = new Map([
+    const axes: Map<string, AxisSpec> = React.useMemo(() => new Map([
         ["ky", {scale: new PlotScale([-maxAngle, maxAngle], [0, 400]), label: ky_label}],
         ["kx", {scale: new PlotScale([-maxAngle, maxAngle], [0, 400]), label: kx_label}],
-    ]);
+    ]), [maxAngle]);
 
     const [logScale, setLogScale] = React.useState(false);
 
-    const scales: Map<string, ColorScale> = new Map([
+    const scales: Map<string, ColorScale> = React.useMemo(() => new Map([
         ["recip_int", {range: logScale ? [null, null] : [0, null]}],
-    ]);
+    ]), [logScale]);
 
     let pattern = atomValueDeferred(props.sim.pattern);
     pattern = np!.abs2(np!.fft2shift(pattern));

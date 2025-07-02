@@ -83,112 +83,32 @@ interface FigureProps {
     children?: React.ReactNode
 }
 
-// very hacky way to preserve figure contexts
-
-function mapEqual<K, V>(map1: Map<K, V>, map2: Map<K, V>, f: (val1: V, val2: V) => boolean): boolean {
-    if (map1.size !== map2.size) return false;
-
-    for (const [k, v1] of map1.entries()) {
-        const v2 = map2.get(k);
-        if (v2 === undefined || !f(v1, v2)) return false;
-    }
-    return true;
-}
-
-function axisSpecEqual(old_spec: AxisSpec | PlotScale, new_spec: AxisSpec | PlotScale): boolean {
-    if (old_spec instanceof PlotScale) {
-        old_spec = {scale: old_spec} as AxisSpec
-    }
-    if (new_spec instanceof PlotScale) {
-        new_spec = {scale: new_spec} as AxisSpec
-    }
-
-    return (
-        old_spec.scale.isClose(new_spec.scale) &&
-        old_spec.label === new_spec.label &&
-        old_spec.show === new_spec.show &&
-        old_spec.ticks === new_spec.ticks &&
-        old_spec.tickFormat === new_spec.tickFormat &&
-        old_spec.tickLength === new_spec.tickLength &&
-        typeof old_spec.translateExtent === typeof new_spec.translateExtent &&
-        typeof old_spec.translateExtent === "object" ? isClose(old_spec.translateExtent, new_spec.translateExtent as Pair) : old_spec.translateExtent === new_spec.translateExtent
-    );
-}
-
-function scalesEqual(old_scale: ColorScale, new_scale: ColorScale): boolean {
-    if (typeof old_scale.range !== typeof new_scale.range) return false;
-    if (old_scale.range) {
-        if (typeof old_scale.range[0] !== typeof new_scale.range![0] || typeof old_scale.range[1] !== typeof new_scale.range![1]) return false;
-        if (old_scale.range[0] === undefined && !isClose(old_scale.range[0], new_scale.range![0]!)) return false;
-        if (old_scale.range[1] === undefined && !isClose(old_scale.range[1], new_scale.range![1]!)) return false;
-    }
-    return (
-        old_scale.cmap === new_scale.cmap &&
-        old_scale.label === new_scale.label &&
-        typeof old_scale.range === typeof new_scale.range
-    );
-}
-
-function figPropsEqual(old_props: FigureProps, new_props: FigureProps): boolean {
-    if (!mapEqual(old_props.axes, new_props.axes, axisSpecEqual)) return false;
-    if (typeof old_props.scales !== typeof new_props.scales) return false;
-    if (old_props.scales && !mapEqual(old_props.scales, new_props.scales!, scalesEqual)) return false;
-
-    if (typeof old_props.zoomExtent !== typeof new_props.zoomExtent) return false;
-    if (old_props.zoomExtent && !isClose(old_props.zoomExtent, new_props.zoomExtent!)) return false;
-
-    return true;
+function mapValues<K, V, T>(map: Map<K, V>, func: (value: V) => T): Map<K, T> {
+    return new Map([...map].map(([k, v]) => [k, func(v)]));
 }
 
 export function Figure(props: FigureProps) {
+    const axes = React.useMemo(() => mapValues(props.axes, normalize_axis), [props.axes]);
+    const transforms = React.useMemo(() => mapValues(props.axes, () => atom(new Transform1D())), [props.axes]);
 
-    function make_context(props: FigureProps): FigureContextData<string> {
-        let axes: Map<string, Axis> = new Map();
-        let transforms: Map<string, PrimitiveAtom<Transform1D>> = new Map();
+    const scales = props.scales ?? new Map();
+    const currentRanges = React.useMemo(() => mapValues(scales, v => atom(v.range ?? null)), [scales]);
 
-        for (let [k, axis] of props.axes) {
-            axes.set(k, normalize_axis(axis));
-            transforms.set(k, atom(new Transform1D()));
-        }
-
-        const scales: Map<string, ColorScale> = new Map();
-        const currentRanges: Map<string, PrimitiveAtom<[number | null, number | null]>> = new Map();
-
-        if (props.scales) {
-            for (const [k, v] of props.scales) {
-                scales.set(k, v);
-                currentRanges.set(k, atom(v.range ?? [null, null]));
-            }
-        }
-
+    const ctx: FigureContextData<string> = React.useMemo(function () {
         return {
-            axes: axes,
-            transforms: transforms,
+            axes,
+            transforms,
             zoomExtent: props.zoomExtent || [1, Infinity],
-            scales: scales,
-            currentRanges: currentRanges,
+            scales,
+            currentRanges,
         };
-    }
-
-    const ref: React.MutableRefObject<[FigureProps, FigureContextData<string>] | null> = React.useRef(null);
-
-    const ctx = React.useMemo(() => {
-        if (ref.current) {
-            const [old_props, ctx] = ref.current;
-            if (figPropsEqual(old_props, props)) {
-                return ctx;
-            }
-        }
-
-        console.log("Redrawing Figure");
-        ref.current = [props, make_context(props)];
-        return ref.current[1];
-    }, [props])
+    }, [axes, transforms, props.zoomExtent, scales, currentRanges]);
 
     return <FigureContext.Provider value={ctx}>
         {props.children}
     </FigureContext.Provider>;
 }
+
 
 export interface PlotContextData<K> {
     xaxis: K | Axis
@@ -210,7 +130,8 @@ interface AxisProps {
     label?: React.ReactNode | undefined
 }
 
-export function XAxis(props: AxisProps) {
+export const XAxis = React.memo(function XAxis(props: AxisProps) {
+    console.log("xaxis");
     const fig = React.useContext(FigureContext);
     const plot = React.useContext(PlotContext);
     if (fig === undefined || plot === undefined) {
@@ -260,9 +181,9 @@ export function XAxis(props: AxisProps) {
         { ticks }
         { label }
     </g>;
-}
+});
 
-export function YAxis(props: AxisProps) {
+export const YAxis = React.memo(function YAxis(props: AxisProps) {
     const fig = React.useContext(FigureContext);
     const plot = React.useContext(PlotContext);
     if (fig === undefined || plot === undefined) {
@@ -309,7 +230,7 @@ export function YAxis(props: AxisProps) {
         { ticks }
         { label }
     </g>;
-}
+});
 
 interface PlotProps {
     xaxis?: string | AxisSpec
@@ -348,17 +269,17 @@ export function Plot(props: PlotProps) {
     if (!xaxis) throw new Error("Invalid xaxis passed to component 'Plot'");
     if (!yaxis) throw new Error("Invalid yaxis passed to component 'Plot'");
 
+    const fixedAspect = props.fixedAspect ?? false;
     const xaxis_pos = props.xaxis_pos ?? 'bottom';
     const yaxis_pos = props.yaxis_pos ?? 'left';
 
-    let ctx: PlotContextData<string> = {
-        xaxis: (typeof props.xaxis === "string") ? props.xaxis : xaxis,
-        yaxis: (typeof props.yaxis === "string") ? props.yaxis : yaxis,
-        fixedAspect: props.fixedAspect ?? false,
-
-        xaxis_pos: xaxis_pos,
-        yaxis_pos: yaxis_pos,
-    };
+    let ctx: PlotContextData<string> = React.useMemo(function() {
+        return {
+            xaxis: (typeof props.xaxis === "string") ? props.xaxis : xaxis,
+            yaxis: (typeof props.yaxis === "string") ? props.yaxis : yaxis,
+            fixedAspect, xaxis_pos, yaxis_pos
+        };
+    }, [fig.axes, props.xaxis, props.yaxis, fixedAspect, xaxis_pos, yaxis_pos]);
 
     const show_xaxis = props.show_xaxis ?? !!xaxis.show;
     const show_yaxis = props.show_yaxis ?? !!yaxis.show;
