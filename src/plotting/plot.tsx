@@ -516,7 +516,7 @@ export function PlotGrid(props: PlotGridProps) {
                     yaxis.show === "one" ? col === (yaxis_pos === 'left' ? 0 : ncols - 1) : yaxis.show
                 );
 
-                const dims = calc_plot_dims(fig, xaxis, yaxis, show_xaxis, show_yaxis, xaxis_pos, yaxis_pos, child.props.margins);
+                const dims = calc_plot_dims(fig, xaxis, yaxis, show_xaxis, show_yaxis, xaxis_pos, yaxis_pos, child_props.margins);
                 widths[col] = Math.max(widths[col], dims.totalWidth);
                 heights[row] = Math.max(heights[row], dims.totalHeight);
 
@@ -609,7 +609,7 @@ export function PlotImage(props: PlotImageProps) {
         .scale(Math.abs(xlim[1] - xlim[0]) / width, Math.abs(ylim[1] - ylim[0]) / height);*/
     //let transform = new Transform2D();
 
-    const canvasRef: React.MutableRefObject<HTMLCanvasElement | null> = React.useRef(null);
+    const canvasRef: React.RefObject<HTMLCanvasElement | null> = React.useRef(null);
 
     React.useEffect(() => {
         const canvas = canvasRef.current;
@@ -623,10 +623,12 @@ export function PlotImage(props: PlotImageProps) {
             scale_range[1] ?? np.nanmax(data).toNestedArray() as number
         ];
 
+        if (isNaN(range[0]) || isNaN(range[1])) return;
+
         // TODO: currently this just sets currentRange unconditionally
         // need to make this smarter
         if (currentRange[0] == null || currentRange[1] == null || !isClose(currentRange as Pair, range)) {
-            console.log(`setCurrentRange([${range[0]}, ${range[1]}]`);
+            //console.log(`setCurrentRange([${range[0]}, ${range[1]}]`);
             setCurrentRange(range);
         }
 

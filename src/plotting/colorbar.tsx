@@ -26,7 +26,7 @@ export function Colorbar(props: ColorBarProps) {
     const scale = fig.scales.get(props.scale)!;
 
     const [min, max] = useAtomValue(fig.currentRanges.get(props.scale)!);
-    console.log(`Colorbar min: ${min} max: ${max}`);
+    //console.log(`Colorbar min: ${min} max: ${max}`);
     if (min == null || max == null || !np) {
         return <></>;
     }

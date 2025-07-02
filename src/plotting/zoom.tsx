@@ -19,9 +19,9 @@ export function Zoomer({children: children}: {children?: React.ReactNode}) {
     const fig = React.useContext(FigureContext)!;
     const plot = React.useContext(PlotContext)!;
 
-    const child = React.Children.only(children) as React.ReactElement;
-    const childRef: React.MutableRefObject<(HTMLElement & SVGSVGElement) | null> = React.useRef(null);
-    const managerRef: React.MutableRefObject<ZoomManager | null> = React.useRef(null);
+    const child = React.Children.only(children) as React.ReactElement<React.RefAttributes<Element>>;
+    const childRef: React.RefObject<(HTMLElement & SVGSVGElement) | null> = React.useRef(null);
+    const managerRef: React.RefObject<ZoomManager | null> = React.useRef(null);
 
     let xaxis: Axis, yaxis: Axis;
     let xtrans: Transform1D, ytrans; Transform1D;

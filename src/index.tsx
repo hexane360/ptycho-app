@@ -13,6 +13,7 @@ import { make_focused_probe, make_recip_grid, Aberration, Electron } from './opt
 import { object_phase } from './atoms';
 import { HCenter, VBox, HBox, SidebarContainer } from './components';
 import Config from './config';
+import { atomValueDeferred } from './util';
 
 import './index.css';
 
@@ -68,6 +69,7 @@ export class Simulation {
 
         this.probe = atom(async (get) => {
             await np_fut;
+            await sleep(0);
 
             const [ky, kx] = make_recip_grid(get(this.extent), get(this.n));
             return make_focused_probe(
@@ -77,7 +79,7 @@ export class Simulation {
 
         this.object = atom(async (get) => {
             await np_fut;
-            await sleep(50);
+            await sleep(100); // debounce
 
             const [extent, n] = [get(this.extent), get(this.n)];
             const electron = get(this.electron);
@@ -99,6 +101,7 @@ export class Simulation {
     }
 }
 
+
 export class ProbeState {
     aperture: number
     aberrations: Array<Aberration>
@@ -115,21 +118,23 @@ export class ProbeState {
 function App(props: {}) {
     const sim = new Simulation();
 
-    console.log("App()");
-
     return <div className="app">
         <SidebarContainer>
             <Config sim={sim}/>
             <HCenter>
-                <React.Suspense> <Probe sim={sim}/> </React.Suspense>
-                <React.Suspense> <Object sim={sim}/> </React.Suspense>
-                <React.Suspense> <Detector sim={sim}/> </React.Suspense>
+                <React.Suspense><Probe sim={sim}/></React.Suspense>
+                <React.Suspense><Object sim={sim}/></React.Suspense>
+                <React.Suspense><Detector sim={sim}/></React.Suspense>
             </HCenter>
         </SidebarContainer>
     </div>
 }
 
-function Probe(props: {sim: Simulation}) {
+function Fallback(props: {}) {
+    return <div style={{height: 1100}}/>;
+}
+
+const Probe = React.memo(function Probe(props: {sim: Simulation}) {
     const maxAngle = useAtomValue(props.sim.maxAngle);
     const extent = useAtomValue(props.sim.extent);
 
@@ -148,7 +153,7 @@ function Probe(props: {sim: Simulation}) {
         ["recip_int", {range: [0, null]}],
     ]);
 
-    const probe = useAtomValue(props.sim.probe);
+    const probe = atomValueDeferred(props.sim.probe);
     const recip_int = np!.abs2(np!.fft2shift(probe));
     const probe_int = np!.abs2(np!.fft2shift(np!.ifft2(probe)));
 
@@ -162,10 +167,10 @@ function Probe(props: {sim: Simulation}) {
             </Plot>
         </HBox>
     </Figure>
-}
+});
 
 const Object = React.memo(function Object(props: {sim: Simulation}) {
-    const extent = useAtomValue(props.sim.extent);
+    const extent = useAtomValue(props.sim.extent, {delay: 0});
 
     const axes: Map<string, AxisSpec> = new Map([
         ["y", {scale: new PlotScale([-extent[0]/20., extent[0]/20.], [0, 200]), label: "Y [nm]"}],
@@ -176,13 +181,12 @@ const Object = React.memo(function Object(props: {sim: Simulation}) {
         ["phase", {range: [0, null], label: "Object phase [rad]"}],
     ]);
 
-    const object = useAtomValue(props.sim.object);
-    const deferredObject = React.useDeferredValue(object);
+    const object = atomValueDeferred(props.sim.object);
 
     return <Figure axes={axes} scales={scales}>
         <HBox>
             <Plot xaxis="x" yaxis="y">
-            <PlotImage scale="phase" data={np!.fft2shift(deferredObject)} />
+            <PlotImage scale="phase" data={np!.fft2shift(object)} />
             <Crosshairs pos={props.sim.probePos} />
             </Plot>
             <Colorbar scale="phase"/>
@@ -190,7 +194,7 @@ const Object = React.memo(function Object(props: {sim: Simulation}) {
     </Figure>
 });
 
-function Detector(props: {sim: Simulation}) {
+const Detector = React.memo(function Detector(props: {sim: Simulation}) {
     const maxAngle = useAtomValue(props.sim.maxAngle);
 
     const ky_label = React.useMemo(() => <>θ<tspan dy="0.6ex">y</tspan><tspan dy="-0.6ex"> [mrad]</tspan></>, []);
@@ -207,12 +211,11 @@ function Detector(props: {sim: Simulation}) {
         ["recip_int", {range: logScale ? [null, null] : [0, null]}],
     ]);
 
-    let pattern = useAtomValue(props.sim.pattern);
+    let pattern = atomValueDeferred(props.sim.pattern);
     pattern = np!.abs2(np!.fft2shift(pattern));
     if (logScale) {
         pattern = np!.log10_(pattern);
     }
-    console.log(`min: ${np!.nanmin(pattern)} max: ${np!.nanmax(pattern)}`);
 
     return <Figure axes={axes} scales={scales}>
         <VBox>
@@ -224,7 +227,7 @@ function Detector(props: {sim: Simulation}) {
             </Plot>
         </VBox>
     </Figure>
-}
+});
 
 function viewCoords(node: SVGElement, client: Pair): Pair {
     let svg = node.ownerSVGElement || node as SVGSVGElement;
@@ -291,8 +294,8 @@ function Crosshairs(props: {pos: PrimitiveAtom<Pair>}) {
     const fig = React.useContext(FigureContext)!;
     const plot = React.useContext(PlotContext)!;
 
-    const managerRef: React.MutableRefObject<CrosshairsManager | null> = React.useRef(null);
-    const ref: React.RefObject<HTMLElement & SVGPathElement> = React.useRef(null);
+    const managerRef: React.RefObject<CrosshairsManager | null> = React.useRef(null);
+    const ref: React.RefObject<(HTMLElement & SVGPathElement) | null> = React.useRef(null);
 
     const [pos, setPos] = useAtom(props.pos);
 
