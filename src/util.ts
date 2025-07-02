@@ -1,4 +1,3 @@
-import React from 'react';
 import { atom, useAtomValue, Atom } from 'jotai';
 
 const _memo_cache = new WeakMap()
@@ -49,59 +48,3 @@ export function atomValueDeferred<Value>(anAtom: Atom<PromiseLike<Awaited<Value>
     }, anAtom);
     return useAtomValue(derivedAtom);
 }
-
-
-/*
-export function atomValueDeferred<Value>(anAtom: Atom<PromiseLike<Awaited<Value>>>): Awaited<Value> {
-    // memoize on atom (one cache and lastValue per atom)
-    const derivedAtom = memo1(() => {
-        console.log("new cache");
-        // stores promise resolutions
-        const cache = new WeakMap<
-            PromiseLike<Awaited<Value>>,
-            Awaited<Value>
-        >();
-        // stores the last value
-        let lastValue: Awaited<Value> | _Sentinel = new _Sentinel();
-
-        // refreshAtom is a hack to chain setSelf into an update of self
-        const refreshAtom = atom(0);
-
-        return atom(
-            (get, { setSelf }) => {
-                get(refreshAtom);
-                const promise = get(anAtom);
-
-                // if we have a cached value, return it early
-                if (cache.has(promise)) {
-                    lastValue = cache.get(promise) as Awaited<Value>;
-                    return lastValue;
-                }
-
-                // no cached value, set up a handler
-                promise.then(
-                    (data) => {
-                        cache.set(promise, data);
-                        setSelf()
-                    },
-                    (error) => {
-                        throw(error);
-                    }
-                )
-                // handle if the handler immediately runs
-                if (cache.has(promise)) {
-                    lastValue = cache.get(promise) as Awaited<Value>;
-                    return lastValue;
-                }
-
-                // return lastValue if present, otherwise the promise
-                return (lastValue instanceof _Sentinel) ? promise : lastValue;
-            },
-            (_get, set) => {
-                set(refreshAtom, (c) => c + 1);
-            }
-        );
-    }, anAtom);
-    return useAtomValue(derivedAtom);
-}
-*/

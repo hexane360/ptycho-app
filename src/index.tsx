@@ -130,10 +130,6 @@ function App(props: {}) {
     </div>
 }
 
-function Fallback(props: {}) {
-    return <div style={{height: 1100}}/>;
-}
-
 const Probe = React.memo(function Probe(props: {sim: Simulation}) {
     const maxAngle = useAtomValue(props.sim.maxAngle);
     const extent = useAtomValue(props.sim.extent);
@@ -170,7 +166,7 @@ const Probe = React.memo(function Probe(props: {sim: Simulation}) {
 });
 
 const Object = React.memo(function Object(props: {sim: Simulation}) {
-    const extent = useAtomValue(props.sim.extent, {delay: 0});
+    const extent = useAtomValue(props.sim.extent);
 
     const axes: Map<string, AxisSpec> = React.useMemo(() => new Map([
         ["y", {scale: new PlotScale([-extent[0]/20., extent[0]/20.], [0, 200]), label: "Y [nm]"}],
