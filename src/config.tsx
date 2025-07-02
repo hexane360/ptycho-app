@@ -19,23 +19,22 @@ export default function Config(props: {sim: Simulation}) {
         console.log(`updateAberration i: ${i} val: ${val}`);
         setAberrations((abs) => {
             const new_abs = [...abs];
-            let ang, mag;
+            let angle = new_abs[i].angle;
+            let mag = new_abs[i].mag;
+
             if (prop === 'mag') {
-                ang = Math.atan2(new_abs[i].imag, new_abs[i].real);
                 mag = val;
             } else {
-                ang = val * Math.PI / 180;
-                mag = Math.sqrt(new_abs[i].real*new_abs[i].real + new_abs[i].imag*new_abs[i].imag);
+                angle = val;
             }
-            console.log(`ang: ${ang} mag: ${mag}`);
 
             new_abs[i] = {
                 name: new_abs[i].name,
                 n: new_abs[i].n,
                 m: new_abs[i].m,
 
-                real: mag * Math.cos(ang),
-                imag: mag * Math.sin(ang),
+                mag: mag,
+                angle: angle,
             };
 
             console.log(`aberrations: ${JSON.stringify(new_abs)}`);
@@ -45,15 +44,12 @@ export default function Config(props: {sim: Simulation}) {
     }
 
     const aberration_rows = aberrations.map((ab, i) => {
-        const mag = Math.sqrt(ab.real*ab.real + ab.imag*ab.imag);
-        const angle = Math.atan2(ab.imag, ab.real) * 180/Math.PI;
-
         return <tr key={i}>
             <td>{ab.name}</td>
             <td>{ab.n}</td>
             <td>{ab.m}</td>
-            <td><input type="number" defaultValue={mag} onInput={(e) => updateAberration(i, 'mag', e.currentTarget.valueAsNumber)}></input></td>
-            <td><input type="number" defaultValue={angle} onInput={(e) => updateAberration(i, 'angle', e.currentTarget.valueAsNumber)}></input></td>
+            <td><input type="number" defaultValue={ab.mag} onInput={(e) => updateAberration(i, 'mag', e.currentTarget.valueAsNumber)}></input></td>
+            <td><input type="number" defaultValue={ab.angle} onInput={(e) => updateAberration(i, 'angle', e.currentTarget.valueAsNumber)}></input></td>
         </tr>;
     });
 

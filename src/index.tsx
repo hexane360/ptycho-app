@@ -48,10 +48,10 @@ export class Simulation {
 
         this.aperture = atom(30.);
         this.aberrations = atom([
-            { name: "Defocus", n: 1, m: 0, real: 200, imag: 0.},
-            { name: "Astigmatism", n: 1, m: 2, real: 0, imag: 0.},
-            { name: "Coma", n: 2, m: 1, real: 0, imag: 0.},
-            { name: "Spherical", n: 3, m: 0, real: 0, imag: 0.},
+            { name: "Defocus", n: 1, m: 0, mag: 200, angle: 0.},
+            { name: "Astigmatism", n: 1, m: 2, mag: 0, angle: 0.},
+            { name: "Coma", n: 2, m: 1, mag: 0, angle: 0.},
+            { name: "Spherical", n: 3, m: 0, mag: 0, angle: 0.},
             //{ n: 2, m: 3, real: 5000, imag: 0.},
         ] as ReadonlyArray<Aberration>);
 

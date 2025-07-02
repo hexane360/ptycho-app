@@ -622,7 +622,6 @@ export function PlotImage(props: PlotImageProps) {
             scale_range[0] ?? np.nanmin(data).toNestedArray() as number,
             scale_range[1] ?? np.nanmax(data).toNestedArray() as number
         ];
-
         if (isNaN(range[0]) || isNaN(range[1])) return;
 
         // TODO: currently this just sets currentRange unconditionally

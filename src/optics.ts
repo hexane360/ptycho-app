@@ -50,8 +50,8 @@ export interface Aberration {
   n: number
   m: number
 
-  real: number
-  imag: number
+  mag: number  // magnitude
+  angle: number // angle in degrees
   name?: string
 }
 
@@ -65,10 +65,9 @@ export function make_focused_probe(ky: NArray, kx: NArray, wavelength: number,
     let phi = np!.arctan2(ky, kx);
 
     for (const ab of aberrations) {
-        const [z_real, z_imag] = [np!.expr`cos(${phi}*${ab.m})`, np!.expr`sin(${phi}*${ab.m})`];
-        chi = np!.expr`${chi} + ${theta2}**${(ab.n + 1)/2.} / (${ab.n} + 1) * (${ab.real}*${z_real} + ${ab.imag}*${z_imag})`;
+        if (ab.mag == 0.) continue;
+        chi = np!.expr`${chi} + ${ab.mag} * ${theta2}**${(ab.n + 1)/2.} / (${ab.n} + 1) * cos(${ab.m} * (${phi} - ${ab.angle * Math.PI/180.0}))`;
     }
-    //const phase = np!.expr`${defocus}/(2.*${lambda}) * ${theta2}`;
 
     const mask = np!.expr`${theta2} <= (${aperture}*1e-3)**2`;
     let probe = np!.expr`exp(-2.j*pi * (${chi}/${wavelength}))`.astype('complex64');
